@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="robots" content="noindex">
 <title>NITF Submission Portal</title>
 <style>
 body{
@@ -38,21 +39,21 @@ button{
 </head>
 <body>
 
-<h2>Editorial NITF Submission</h2>
+<h2>Editorial NITF Submission with Styles</h2>
 
 <form id="form">
 
 <label>Publication Code</label>
-<input id="publication" value="DT">
+<input id="publication" value="TN">
 
 <label>Category</label>
 <select id="category">
-  <option>TN Announcements</option>
-  <option>TN Court News</option>
-  <option>TN Lifestyles</option>
-  <option>TN News</option>
-  <option>TN Police Logs</option>
-  <option>TN Sports</option>
+<option>TN Announcements</option>
+<option>TN Court News</option>
+<option>TN Lifestyles</option>
+<option>TN News</option>
+<option>TN Police Logs</option>
+<option>TN Sports</option>
 </select>
 
 <label>Headline</label>
@@ -102,7 +103,6 @@ button{
 
 // --- Helper Functions ---
 
-// Escape special XML characters
 function escapeXML(str){
   if(!str) return "";
   return str.replace(/&/g, "&amp;")
@@ -112,7 +112,6 @@ function escapeXML(str){
             .replace(/'/g, "&apos;");
 }
 
-// Auto-generate Story ID
 function generateStoryId(pub){
   let d = new Date();
   let y = d.getFullYear();
@@ -124,14 +123,14 @@ function generateStoryId(pub){
   return `${pub}-${y}${m}${day}-${h}${min}${s}`;
 }
 
-// Convert body text to paragraphs
+// Convert body text to styled paragraphs
 function convertBodyToParagraphs(text){
   let paragraphs = text.trim().split(/\n\s*\n/);
   let xml = "";
   paragraphs.forEach(p=>{
     let clean = p.replace(/\n/g,' ').trim();
     if(clean.length>0){
-      xml += `<p>${escapeXML(clean)}</p>\n`;
+      xml += `<p style="@Body.Normal">${escapeXML(clean)}</p>\n`;
     }
   });
   return xml;
@@ -141,7 +140,6 @@ function convertBodyToParagraphs(text){
 
 let files=[];
 
-// Handle image uploads and create caption/credit inputs
 document.getElementById("images").addEventListener("change", function(){
   files = [...this.files];
   let container = document.getElementById("imageMeta");
@@ -174,7 +172,7 @@ function generateXML(){
   let authorEmail = escapeXML(document.getElementById("authorEmail").value);
   let priority = escapeXML(document.getElementById("priority").value);
   let keywords = escapeXML(document.getElementById("keywords").value);
-  let body = document.getElementById("body").value; // keep unescaped for paragraph function
+  let body = document.getElementById("body").value;
 
   // Build media XML
   let mediaXML = "";
@@ -189,7 +187,7 @@ function generateXML(){
 `;
   });
 
-  // Build full XML
+  // Build full XML with styles
   xmlOutput = `<?xml version="1.0" encoding="UTF-8"?>
 <nitf>
 <head>
@@ -210,10 +208,13 @@ function generateXML(){
 <body>
 <body.head>
 <hedline>
-<hl1>${headline}</hl1>
-<hl2>${subheadline}</hl2>
+<hl1><p style="@Head.42">${headline}</p></hl1>
 </hedline>
-<byline>${byline}</byline>
+
+<byline>
+<p>By ${byline}</p>
+<p style="@Byline.2">${authorEmail}</p>
+</byline>
 </body.head>
 
 <body.content>
@@ -245,6 +246,7 @@ async function downloadZip(){
   a.download = "submission.zip";
   a.click();
 }
+
 </script>
 
 </body>

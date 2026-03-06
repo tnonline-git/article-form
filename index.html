@@ -74,7 +74,7 @@ padding:10px 15px;
 <input id="subheadline">
 
 <label>Slug</label>
-<input id="slug">
+<input id="subject">
 
 <label>Author Username</label>
 <input id="author">
@@ -174,7 +174,7 @@ let timestamp=new Date().toISOString();
 
 let headline=document.getElementById("headline").value;
 let subheadline=document.getElementById("subheadline").value;
-let slug=document.getElementById("slug").value;
+let slug=document.getElementById("subject").value;
 let section=document.getElementById("section").value;
 let author=document.getElementById("author").value;
 let byline=document.getElementById("byline").value;
@@ -214,7 +214,7 @@ xmlOutput=`<?xml version="1.0" encoding="UTF-8"?>
 <meta name="workflow" content="editorial"/>
 <meta name="status" content="ready"/>
 <meta name="author" content="${author}"/>
-<meta name="slug" content="${slug}"/>
+<meta name="subject" content="${subject}"/>
 <meta name="storyid" content="${storyid}"/>
 <meta name="created" content="${timestamp}"/>
 <meta name="updated" content="${timestamp}"/>

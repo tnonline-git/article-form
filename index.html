@@ -50,19 +50,22 @@ padding:10px 15px;
 
 <form id="form">
 
-<label>Publication Code</label>
-<input id="publication" value="DT">
-
-<label>Channel Short</label>
-<input id="channelShort">
+<label>Publication</label>
+<select id="publication" onchange="updateCategories()">
+<option>TN</option>
+<option>BP</option>
+<option>CP</option>
+<option>EP</option>
+<option>NH</option>
+<option>NW</option>
+<option>PP</option>
+<option>SP</option>
+<option>WC</option>
+<option>Focus</option>
+</select>
 
 <label>Category</label>
-<select id="category">
-<option>news</option>
-<option>sports</option>
-<option>business</option>
-<option>features</option>
-</select>
+<select id="category"></select>
 
 <label>Headline</label>
 <input id="headline">
@@ -90,7 +93,7 @@ padding:10px 15px;
 <input id="keywords">
 
 <label>Article Body</label>
-<textarea id="body" rows="6"></textarea>
+<textarea id="body" rows="12"></textarea>
 
 <label>Upload Images</label>
 <input type="file" id="images" multiple>
@@ -109,7 +112,47 @@ padding:10px 15px;
 
 <script>
 
-// Escape XML characters
+const tnCategories=[
+"TN Announcements",
+"TN Court News",
+"TN Lifestyles",
+"TN News",
+"TN Police Logs",
+"TN Sports"
+];
+
+const lvpCategories=[
+"LVP Business Showcase",
+"LVP College Corner",
+"LVP Columns",
+"LVP Focus",
+"LVP News",
+"LVP News Briefs",
+"LVP Police Logs",
+"LVP School News",
+"LVP Social News",
+"LVP Sports"
+];
+
+function updateCategories(){
+
+let pub=document.getElementById("publication").value;
+let categorySelect=document.getElementById("category");
+
+categorySelect.innerHTML="";
+
+let list=(pub==="TN") ? tnCategories : lvpCategories;
+
+list.forEach(cat=>{
+let option=document.createElement("option");
+option.text=cat;
+categorySelect.add(option);
+});
+
+}
+
+updateCategories();
+
 function escapeXML(str){
 if(!str) return "";
 return str.replace(/&/g,"&amp;")
@@ -119,7 +162,6 @@ return str.replace(/&/g,"&amp;")
 .replace(/'/g,"&apos;");
 }
 
-// Story ID generator
 function generateStoryId(pub){
 
 let d=new Date();
@@ -136,7 +178,6 @@ return `${pub}-${y}${m}${day}-${h}${min}${s}`;
 
 }
 
-// Convert body text to styled paragraphs
 function convertBodyToParagraphs(text){
 
 let paragraphs=text.trim().split(/\n\s*\n/);
@@ -159,9 +200,27 @@ return xml;
 
 }
 
+function getChannelShort(pub){
+
+const mapping={
+"TN":"TN, TNO",
+"BP":"BP, TNO-E",
+"CP":"CP, TNO-E",
+"EP":"EP, TNO-E",
+"NH":"NH, TNO-E",
+"NW":"NW, TNO-E",
+"PP":"PP, TNO-E",
+"SP":"SP, TNO-E",
+"WC":"WC, TNO-E",
+"Focus":"LVP, TNO-E"
+};
+
+return mapping[pub];
+
+}
+
 let files=[];
 
-// Image upload handling
 document.getElementById("images").addEventListener("change",function(){
 
 files=[...this.files];
@@ -196,39 +255,29 @@ let xmlOutput="";
 
 function generateXML(){
 
-let pub=escapeXML(document.getElementById("publication").value);
+let pub=document.getElementById("publication").value;
 
-let channelShort=escapeXML(document.getElementById("channelShort").value);
+let channelShort=getChannelShort(pub);
 
 let storyid=generateStoryId(pub);
 
 let timestamp=new Date().toISOString();
 
 let headline=escapeXML(document.getElementById("headline").value);
-
 let subheadline=escapeXML(document.getElementById("subheadline").value);
-
 let slug=escapeXML(document.getElementById("slug").value);
-
 let category=escapeXML(document.getElementById("category").value);
-
 let byline=escapeXML(document.getElementById("byline").value);
-
 let authorEmail=escapeXML(document.getElementById("authorEmail").value);
-
 let priority=escapeXML(document.getElementById("priority").value);
-
 let keywords=escapeXML(document.getElementById("keywords").value);
-
 let body=document.getElementById("body").value;
 
-// Media XML
 let mediaXML="";
 
 files.forEach((file,i)=>{
 
 let caption=escapeXML(document.getElementById("caption"+i).value);
-
 let credit=escapeXML(document.getElementById("credit"+i).value);
 
 mediaXML+=`
@@ -250,28 +299,16 @@ xmlOutput=`<?xml version="1.0" encoding="UTF-8"?>
 
 <title>${headline}</title>
 
-<meta name="publication" content="${pub}"/>
-
 <meta name="SAXo-ChannelShort" content="${channelShort}"/>
-
 <meta name="SAXo-Category" content="${category}"/>
-
 <meta name="priority" content="${priority}"/>
-
 <meta name="workflow" content="editorial"/>
-
 <meta name="status" content="Imported"/>
-
 <meta name="author" content="${authorEmail}"/>
-
 <meta name="subject" content="${slug}"/>
-
 <meta name="storyid" content="${storyid}"/>
-
 <meta name="created" content="${timestamp}"/>
-
 <meta name="updated" content="${timestamp}"/>
-
 <meta name="keywords" content="${keywords}"/>
 
 </head>
@@ -281,27 +318,22 @@ xmlOutput=`<?xml version="1.0" encoding="UTF-8"?>
 <body.head>
 
 <hedline>
-
-<hl1>
-<p style="@Head.42">${headline}</p>
-</hl1>
-
+<hl1><p style="@Head.42">${headline}</p></hl1>
 </hedline>
 
 <byline>
-
 <p>By ${byline}</p>
-
 <p style="@Byline.2">${authorEmail}</p>
-
 </byline>
 
 </body.head>
 
 <body.content>
+<block>
 
 ${convertBodyToParagraphs(body)}
 
+</block>
 </body.content>
 
 </body>
@@ -322,7 +354,7 @@ async function downloadZip(){
 
 if(!xmlOutput){
 
-alert("Please generate XML first!");
+alert("Generate XML first");
 
 return;
 
@@ -333,9 +365,7 @@ let zip=new JSZip();
 zip.file("article.xml",xmlOutput);
 
 files.forEach(file=>{
-
 zip.file(file.name,file);
-
 });
 
 let content=await zip.generateAsync({type:"blob"});
@@ -353,5 +383,4 @@ a.click();
 </script>
 
 </body>
-
 </html>

@@ -2,59 +2,70 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="robots" content="noindex">
 <title>NITF Submission Portal</title>
+
 <style>
 body{
-  font-family: Arial;
-  max-width: 900px;
-  margin: auto;
-  padding: 20px;
+font-family:Arial;
+max-width:900px;
+margin:auto;
+padding:20px;
 }
+
 label{
-  font-weight: bold;
+font-weight:bold;
 }
-input, select, textarea{
-  width: 100%;
-  margin-top: 5px;
-  margin-bottom: 15px;
-  padding: 8px;
+
+input,select,textarea{
+width:100%;
+margin-top:5px;
+margin-bottom:15px;
+padding:8px;
 }
+
 #preview{
-  background:#f5f5f5;
-  padding:15px;
-  white-space: pre;
-  overflow: auto;
+background:#f5f5f5;
+padding:15px;
+white-space:pre;
+overflow:auto;
 }
+
 .imageBlock{
-  border:1px solid #ccc;
-  padding:10px;
-  margin-bottom:10px;
+border:1px solid #ccc;
+padding:10px;
+margin-bottom:10px;
 }
+
 button{
-  margin-top:10px;
-  padding:10px 15px;
+margin-top:10px;
+padding:10px 15px;
 }
 </style>
+
 </head>
+
 <body>
 
-<h2>Editorial NITF Submission with Styles</h2>
+<h2>Editorial NITF Submission</h2>
 
 <form id="form">
 
-<label>Publication Code</label>
-<input id="publication" value="TN">
+<label>Publication</label>
+<select id="publication" onchange="updateCategories()">
+<option>TN</option>
+<option>BP</option>
+<option>CP</option>
+<option>EP</option>
+<option>NH</option>
+<option>NW</option>
+<option>PP</option>
+<option>SP</option>
+<option>WC</option>
+<option>Focus</option>
+</select>
 
 <label>Category</label>
-<select id="category">
-<option>TN Announcements</option>
-<option>TN Court News</option>
-<option>TN Lifestyles</option>
-<option>TN News</option>
-<option>TN Police Logs</option>
-<option>TN Sports</option>
-</select>
+<select id="category"></select>
 
 <label>Headline</label>
 <input id="headline">
@@ -73,9 +84,9 @@ button{
 
 <label>Priority</label>
 <select id="priority">
-  <option value="1">High</option>
-  <option value="2">Normal</option>
-  <option value="3">Low</option>
+<option value="1">High</option>
+<option value="2">Normal</option>
+<option value="3">Low</option>
 </select>
 
 <label>Keywords</label>
@@ -101,98 +112,194 @@ button{
 
 <script>
 
-// --- Helper Functions ---
+const tnCategories=[
+"TN Announcements",
+"TN Court News",
+"TN Lifestyles",
+"TN News",
+"TN Police Logs",
+"TN Sports"
+];
+
+const lvpCategories=[
+"LVP Business Showcase",
+"LVP College Corner",
+"LVP Columns",
+"LVP Focus",
+"LVP News",
+"LVP News Briefs",
+"LVP Police Logs",
+"LVP School News",
+"LVP Social News",
+"LVP Sports"
+];
+
+function updateCategories(){
+
+let pub=document.getElementById("publication").value;
+let categorySelect=document.getElementById("category");
+
+categorySelect.innerHTML="";
+
+let list=(pub==="TN") ? tnCategories : lvpCategories;
+
+list.forEach(cat=>{
+let option=document.createElement("option");
+option.text=cat;
+categorySelect.add(option);
+});
+
+}
+
+updateCategories();
 
 function escapeXML(str){
-  if(!str) return "";
-  return str.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&apos;");
+if(!str) return "";
+return str.replace(/&/g,"&amp;")
+.replace(/</g,"&lt;")
+.replace(/>/g,"&gt;")
+.replace(/"/g,"&quot;")
+.replace(/'/g,"&apos;");
 }
 
 function generateStoryId(pub){
-  let d = new Date();
-  let y = d.getFullYear();
-  let m = String(d.getMonth()+1).padStart(2,'0');
-  let day = String(d.getDate()).padStart(2,'0');
-  let h = String(d.getHours()).padStart(2,'0');
-  let min = String(d.getMinutes()).padStart(2,'0');
-  let s = String(d.getSeconds()).padStart(2,'0');
-  return `${pub}-${y}${m}${day}-${h}${min}${s}`;
+
+let d=new Date();
+
+let y=d.getFullYear();
+let m=String(d.getMonth()+1).padStart(2,'0');
+let day=String(d.getDate()).padStart(2,'0');
+
+let h=String(d.getHours()).padStart(2,'0');
+let min=String(d.getMinutes()).padStart(2,'0');
+let s=String(d.getSeconds()).padStart(2,'0');
+
+return `${pub}-${y}${m}${day}-${h}${min}${s}`;
+
 }
 
-// Convert body text to styled paragraphs
 function convertBodyToParagraphs(text){
-  let paragraphs = text.trim().split(/\n\s*\n/);
-  let xml = "";
-  paragraphs.forEach(p=>{
-    let clean = p.replace(/\n/g,' ').trim();
-    if(clean.length>0){
-      xml += `<p style="@Body.Normal">${escapeXML(clean)}</p>\n`;
-    }
-  });
-  return xml;
+
+let paragraphs=text.trim().split(/\n\s*\n/);
+
+let xml="";
+
+paragraphs.forEach(p=>{
+
+let clean=p.replace(/\n/g,' ').trim();
+
+if(clean.length>0){
+
+xml+=`<p style="@Body.Normal">${escapeXML(clean)}</p>\n`;
+
 }
 
-// --- Main Script ---
+});
+
+return xml;
+
+}
+
+function getChannelShort(pub){
+
+const mapping={
+"TN":"TN, TNO",
+"BP":"BP, TNO-E",
+"CP":"CP, TNO-E",
+"EP":"EP, TNO-E",
+"NH":"NH, TNO-E",
+"NW":"NW, TNO-E",
+"PP":"PP, TNO-E",
+"SP":"SP, TNO-E",
+"WC":"WC, TNO-E",
+"Focus":"LVP, TNO-E"
+};
+
+return mapping[pub];
+
+}
 
 let files=[];
 
-document.getElementById("images").addEventListener("change", function(){
-  files = [...this.files];
-  let container = document.getElementById("imageMeta");
-  container.innerHTML = "";
-  files.forEach((file,i)=>{
-    container.innerHTML += `
+document.getElementById("images").addEventListener("change",function(){
+
+files=[...this.files];
+
+let container=document.getElementById("imageMeta");
+
+container.innerHTML="";
+
+files.forEach((file,i)=>{
+
+container.innerHTML+=`
+
 <div class="imageBlock">
+
 <b>${file.name}</b><br>
+
 Caption:
 <input id="caption${i}">
+
 Credit:
 <input id="credit${i}">
+
 </div>
+
 `;
-  });
+
+});
+
 });
 
 let xmlOutput="";
 
 function generateXML(){
-  let pub = escapeXML(document.getElementById("publication").value);
-  let storyid = generateStoryId(pub);
-  let timestamp = new Date().toISOString();
 
-  let headline = escapeXML(document.getElementById("headline").value);
-  let subheadline = escapeXML(document.getElementById("subheadline").value);
-  let slug = escapeXML(document.getElementById("slug").value);
-  let category = escapeXML(document.getElementById("category").value);
-  let byline = escapeXML(document.getElementById("byline").value);
-  let authorEmail = escapeXML(document.getElementById("authorEmail").value);
-  let priority = escapeXML(document.getElementById("priority").value);
-  let keywords = escapeXML(document.getElementById("keywords").value);
-  let body = document.getElementById("body").value;
+let pub=document.getElementById("publication").value;
 
-  // Build media XML
-  let mediaXML = "";
-  files.forEach((file,i)=>{
-    let caption = escapeXML(document.getElementById("caption"+i).value);
-    let credit = escapeXML(document.getElementById("credit"+i).value);
-    mediaXML += `
+let channelShort=getChannelShort(pub);
+
+let storyid=generateStoryId(pub);
+
+let timestamp=new Date().toISOString();
+
+let headline=escapeXML(document.getElementById("headline").value);
+let subheadline=escapeXML(document.getElementById("subheadline").value);
+let slug=escapeXML(document.getElementById("slug").value);
+let category=escapeXML(document.getElementById("category").value);
+let byline=escapeXML(document.getElementById("byline").value);
+let authorEmail=escapeXML(document.getElementById("authorEmail").value);
+let priority=escapeXML(document.getElementById("priority").value);
+let keywords=escapeXML(document.getElementById("keywords").value);
+let body=document.getElementById("body").value;
+
+let mediaXML="";
+
+files.forEach((file,i)=>{
+
+let caption=escapeXML(document.getElementById("caption"+i).value);
+let credit=escapeXML(document.getElementById("credit"+i).value);
+
+mediaXML+=`
+
 <media-reference source="${file.name}">
-  <caption>${caption}</caption>
-  <credit>${credit}</credit>
+<caption>${caption}</caption>
+<credit>${credit}</credit>
 </media-reference>
-`;
-  });
 
-  // Build full XML with styles
-  xmlOutput = `<?xml version="1.0" encoding="UTF-8"?>
+`;
+
+});
+
+xmlOutput=`<?xml version="1.0" encoding="UTF-8"?>
+
 <nitf>
+
 <head>
+
 <title>${headline}</title>
-<meta name="publication" content="${pub}"/>
+
+<meta name="SaXo-ChannelShort" content="${channelShort}"/>
 <meta name="SAXo-Category" content="${category}"/>
 <meta name="priority" content="${priority}"/>
 <meta name="workflow" content="editorial"/>
@@ -203,10 +310,13 @@ function generateXML(){
 <meta name="created" content="${timestamp}"/>
 <meta name="updated" content="${timestamp}"/>
 <meta name="keywords" content="${keywords}"/>
+
 </head>
 
 <body>
+
 <body.head>
+
 <hedline>
 <hl1><p style="@Head.42">${headline}</p></hl1>
 </hedline>
@@ -215,36 +325,59 @@ function generateXML(){
 <p>By ${byline}</p>
 <p style="@Byline.2">${authorEmail}</p>
 </byline>
+
 </body.head>
 
 <body.content>
+<block>
+
 ${convertBodyToParagraphs(body)}
+
+</block>
 </body.content>
+
 </body>
 
 <media>
+
 ${mediaXML}
+
 </media>
+
 </nitf>`;
 
-  document.getElementById("preview").textContent = xmlOutput;
+document.getElementById("preview").textContent=xmlOutput;
+
 }
 
 async function downloadZip(){
-  if(!xmlOutput){
-    alert("Please generate XML first!");
-    return;
-  }
-  let zip = new JSZip();
-  zip.file("article.xml", xmlOutput);
-  files.forEach(file=>{
-    zip.file(file.name, file);
-  });
-  let content = await zip.generateAsync({type:"blob"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(content);
-  a.download = "submission.zip";
-  a.click();
+
+if(!xmlOutput){
+
+alert("Generate XML first");
+
+return;
+
+}
+
+let zip=new JSZip();
+
+zip.file("article.xml",xmlOutput);
+
+files.forEach(file=>{
+zip.file(file.name,file);
+});
+
+let content=await zip.generateAsync({type:"blob"});
+
+let a=document.createElement("a");
+
+a.href=URL.createObjectURL(content);
+
+a.download="submission.zip";
+
+a.click();
+
 }
 
 </script>

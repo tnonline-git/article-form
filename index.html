@@ -203,7 +203,7 @@ return xml;
 function getChannelShort(pub){
 
 const mapping={
-"TN":"TN, TNO",
+"TN":"TN, TNO-E",
 "BP":"BP, TNO-E",
 "CP":"CP, TNO-E",
 "EP":"EP, TNO-E",
@@ -256,7 +256,6 @@ let xmlOutput="";
 function generateXML(){
 
 let pub=document.getElementById("publication").value;
-
 let channelShort=getChannelShort(pub);
 
 let storyid=generateStoryId(pub);
@@ -273,19 +272,28 @@ let priority=escapeXML(document.getElementById("priority").value);
 let keywords=escapeXML(document.getElementById("keywords").value);
 let body=document.getElementById("body").value;
 
+let now=new Date();
+let YYYY=now.getFullYear();
+let MM=String(now.getMonth()+1).padStart(2,'0');
+let DD=String(now.getDate()).padStart(2,'0');
+
 let mediaXML="";
 
 files.forEach((file,i)=>{
 
 let caption=escapeXML(document.getElementById("caption"+i).value);
-let credit=escapeXML(document.getElementById("credit"+i).value);
+let credit=document.getElementById("credit"+i).value.toUpperCase();
+
+let pictureName=file.name;
 
 mediaXML+=`
 
-<media-reference source="${file.name}">
-<caption>${caption}</caption>
-<credit>${credit}</credit>
-</media-reference>
+<media media-type="image">
+<media-metadata picturefile="\\\\nameofserver\\NCSData\\Images\\Local\\${YYYY}\\${MM}\\${DD}\\${pictureName}"/>
+<media-caption>
+<p style="@Caption">${caption} ${credit}</p>
+</media-caption>
+</media>
 
 `;
 
@@ -338,11 +346,7 @@ ${convertBodyToParagraphs(body)}
 
 </body>
 
-<media>
-
 ${mediaXML}
-
-</media>
 
 </nitf>`;
 
@@ -355,7 +359,6 @@ async function downloadZip(){
 if(!xmlOutput){
 
 alert("Generate XML first");
-
 return;
 
 }
@@ -373,9 +376,7 @@ let content=await zip.generateAsync({type:"blob"});
 let a=document.createElement("a");
 
 a.href=URL.createObjectURL(content);
-
 a.download="submission.zip";
-
 a.click();
 
 }

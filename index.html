@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>NITF Submission Portal</title>
+<title>Editorial Submission</title>
 
 <style>
 body{
@@ -10,6 +10,16 @@ font-family:Arial;
 max-width:900px;
 margin:auto;
 padding:20px;
+}
+
+.logo{
+text-align:center;
+margin-bottom:20px;
+}
+
+.logo img{
+max-width:400px;
+height:auto;
 }
 
 label{
@@ -46,7 +56,11 @@ padding:10px 15px;
 
 <body>
 
-<h2>Editorial NITF Submission</h2>
+<div class="logo">
+<img src="TN Logo.png" alt="Times News Logo">
+</div>
+
+<h2>Editorial Submission</h2>
 
 <form id="form">
 
@@ -80,17 +94,7 @@ padding:10px 15px;
 <input id="byline">
 
 <label>Author Email Address</label>
-<input id="authorEmail">
-
-<label>Priority</label>
-<select id="priority">
-<option value="1">High</option>
-<option value="2">Normal</option>
-<option value="3">Low</option>
-</select>
-
-<label>Keywords</label>
-<input id="keywords">
+<input id="email">
 
 <label>Article Body</label>
 <textarea id="body" rows="12"></textarea>
@@ -100,12 +104,12 @@ padding:10px 15px;
 
 <div id="imageMeta"></div>
 
-<button type="button" onclick="generateXML()">Generate XML</button>
+<button type="button" onclick="generateOutput()">Preview Output</button>
 <button type="button" onclick="downloadZip()">Download Submission</button>
 
 </form>
 
-<h3>XML Preview</h3>
+<h3>Preview</h3>
 <pre id="preview"></pre>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -153,72 +157,6 @@ categorySelect.add(option);
 
 updateCategories();
 
-function escapeXML(str){
-if(!str) return "";
-return str.replace(/&/g,"&amp;")
-.replace(/</g,"&lt;")
-.replace(/>/g,"&gt;")
-.replace(/"/g,"&quot;")
-.replace(/'/g,"&apos;");
-}
-
-function generateStoryId(pub){
-
-let d=new Date();
-
-let y=d.getFullYear();
-let m=String(d.getMonth()+1).padStart(2,'0');
-let day=String(d.getDate()).padStart(2,'0');
-
-let h=String(d.getHours()).padStart(2,'0');
-let min=String(d.getMinutes()).padStart(2,'0');
-let s=String(d.getSeconds()).padStart(2,'0');
-
-return `${pub}-${y}${m}${day}-${h}${min}${s}`;
-
-}
-
-function convertBodyToParagraphs(text){
-
-let paragraphs=text.trim().split(/\n\s*\n/);
-
-let xml="";
-
-paragraphs.forEach(p=>{
-
-let clean=p.replace(/\n/g,' ').trim();
-
-if(clean.length>0){
-
-xml+=`<p style="@Body.Normal">${escapeXML(clean)}</p>\n`;
-
-}
-
-});
-
-return xml;
-
-}
-
-function getChannelShort(pub){
-
-const mapping={
-"TN":"TN, TNO-E",
-"BP":"BP, TNO-E",
-"CP":"CP, TNO-E",
-"EP":"EP, TNO-E",
-"NH":"NH, TNO-E",
-"NW":"NW, TNO-E",
-"PP":"PP, TNO-E",
-"SP":"SP, TNO-E",
-"WC":"WC, TNO-E",
-"Focus":"LVP, TNO-E"
-};
-
-return mapping[pub];
-
-}
-
 let files=[];
 
 document.getElementById("images").addEventListener("change",function(){
@@ -240,9 +178,6 @@ container.innerHTML+=`
 Caption:
 <input id="caption${i}">
 
-Credit:
-<input id="credit${i}">
-
 </div>
 
 `;
@@ -251,121 +186,67 @@ Credit:
 
 });
 
-let xmlOutput="";
+let outputText="";
 
-function generateXML(){
+function generateOutput(){
 
-let pub=document.getElementById("publication").value;
-let channelShort=getChannelShort(pub);
+let created=new Date().toISOString();
 
-let storyid=generateStoryId(pub);
-
-let timestamp=new Date().toISOString();
-
-let headline=escapeXML(document.getElementById("headline").value);
-let subheadline=escapeXML(document.getElementById("subheadline").value);
-let slug=escapeXML(document.getElementById("slug").value);
-let category=escapeXML(document.getElementById("category").value);
-let byline=escapeXML(document.getElementById("byline").value);
-let authorEmail=escapeXML(document.getElementById("authorEmail").value);
-let priority=escapeXML(document.getElementById("priority").value);
-let keywords=escapeXML(document.getElementById("keywords").value);
+let publication=document.getElementById("publication").value;
+let category=document.getElementById("category").value;
+let headline=document.getElementById("headline").value;
+let subheadline=document.getElementById("subheadline").value;
+let slug=document.getElementById("slug").value;
+let byline=document.getElementById("byline").value;
+let email=document.getElementById("email").value;
 let body=document.getElementById("body").value;
 
-let now=new Date();
-let YYYY=now.getFullYear();
-let MM=String(now.getMonth()+1).padStart(2,'0');
-let DD=String(now.getDate()).padStart(2,'0');
-
-let mediaXML="";
+let imagesXML="";
 
 files.forEach((file,i)=>{
 
-let caption=escapeXML(document.getElementById("caption"+i).value);
-let credit=document.getElementById("credit"+i).value.toUpperCase();
+let caption=document.getElementById("caption"+i).value;
 
-let pictureName=file.name;
-
-mediaXML+=`
-
-<media media-type="image">
-<media-metadata picturefile="\\\\nameofserver\\NCSData\\Images\\Local\\${YYYY}\\${MM}\\${DD}\\${pictureName}"/>
-<media-caption>
-<p style="@Caption">${caption} ${credit}</p>
-</media-caption>
-</media>
-
+imagesXML+=`
+<image>
+<filename>${file.name}</filename>
+<caption>${caption}</caption>
+</image>
 `;
 
 });
 
-xmlOutput=`<?xml version="1.0" encoding="UTF-8"?>
-
-<nitf>
-
-<head>
-
-<title>${headline}</title>
-
-<meta name="SAXo-ChannelShort" content="${channelShort}"/>
-<meta name="SAXo-Category" content="${category}"/>
-<meta name="priority" content="${priority}"/>
-<meta name="workflow" content="editorial"/>
-<meta name="status" content="Imported"/>
-<meta name="author" content="${authorEmail}"/>
-<meta name="subject" content="${slug}"/>
-<meta name="storyid" content="${storyid}"/>
-<meta name="created" content="${timestamp}"/>
-<meta name="updated" content="${timestamp}"/>
-<meta name="keywords" content="${keywords}"/>
-
-</head>
-
+outputText=
+`<created>${created}</created>
+<publication>${publication}</publication>
+<category>${category}</category>
+<headline>${headline}</headline>
+<subheadline>${subheadline}</subheadline>
+<slug>${slug}</slug>
+<byline>${byline}</byline>
+<email>${email}</email>
 <body>
-
-<body.head>
-
-<hedline>
-<hl1><p style="@Head.42">${headline}</p></hl1>
-</hedline>
-
-<byline>
-<p>By ${byline}</p>
-<p style="@Byline.2">${authorEmail}</p>
-</byline>
-
-</body.head>
-
-<body.content>
-<block>
-
-${convertBodyToParagraphs(body)}
-
-</block>
-</body.content>
-
+${body}
 </body>
 
-${mediaXML}
+${imagesXML}`;
 
-</nitf>`;
-
-document.getElementById("preview").textContent=xmlOutput;
+document.getElementById("preview").textContent=outputText;
 
 }
 
 async function downloadZip(){
 
-if(!xmlOutput){
+if(!outputText){
 
-alert("Generate XML first");
+alert("Generate preview first");
 return;
 
 }
 
 let zip=new JSZip();
 
-zip.file("article.xml",xmlOutput);
+zip.file("submission.txt",outputText);
 
 files.forEach(file=>{
 zip.file(file.name,file);

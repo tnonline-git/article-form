@@ -130,10 +130,9 @@ label { margin-bottom: 4px; display:block; }
 .field select { margin-top: 0; }
 </style>
 
-</head><body><header style="text-align:center; padding:20px 0; border-bottom:1px solid #ccc; margin-bottom:10px;"><img src="TN Logo.png" alt="Times News Logo" style="max-width:360px; height:auto;"></header><h1>Editorial Submission</h1><p class="intro">Create a submission package with article metadata and optional images.</p><p class="required-note">Fields marked with * are required. Required fields: slug, byline, author email address, and article body.</p><div id="errorBox" class="error-box" role="alert" aria-live="assertive"></div><div id="successBox" class="success-box" role="status" aria-live="polite"></div><form id="submissionForm" novalidate><div class="field"><label for="publication">Publication</label><select id="publication" name="publication"></select></div><div class="field"><label for="category">Category</label><select id="category" name="category"></select></div><div class="field"><label for="headline">Headline</label><input id="headline" name="headline" type="text" autocomplete="off"></div><div class="field"><label for="subheadline">Subheadline</label><input id="subheadline" name="subheadline" type="text" autocomplete="off"></div><div class="field"><label for="slug">Slug *</label><input id="slug" name="slug" type="text" required autocomplete="off" aria-required="true"></div><div class="field"><label for="byline">Byline *</label><input id="byline" name="byline" type="text" required autocomplete="off" aria-required="true"></div><div class="field"><label for="email">Author Email Address *</label><input id="email" name="email" type="email" required autocomplete="email" aria-required="true"></div><div class="field"><label for="body">Article Body *</label><textarea id="body" name="body" rows="12" required aria-required="true"></textarea><div class="help">Paste the full article text here.</div></div><div class="field"><label for="images">Upload Images</label><input type="file" id="images" name="images" multiple accept="image/*"><div class="help">Image captions are optional.</div></div><div id="imageMeta" aria-live="polite"></div><div class="actions"><button type="button" id="previewButton">Preview Output</button><button type="button" id="downloadButton">Download Submission</button></div></form><h2>Preview</h2><pre id="preview"></pre><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script><script>
+</head><body><header style="text-align:center; padding:20px 0; border-bottom:1px solid #ccc; margin-bottom:10px;"><img src="TN Logo.png" alt="Times News Logo" style="max-width:360px; height:auto;"></header><h1>Editorial Submission</h1><p class="intro">Create a submission package with article metadata and optional images.</p><p class="required-note">Fields marked with * are required. Required fields: slug, byline, author email address, and article body.</p><div id="errorBox" class="error-box" role="alert" aria-live="assertive"></div><div id="successBox" class="success-box" role="status" aria-live="polite"></div><form id="submissionForm" novalidate><div class="field"><label for="publication">Publication</label><select id="publication" name="publication"></select></div><div class="field"><label for="category">Category</label><select id="category" name="category"></select></div><div class="field"><label for="headline">Headline</label><input id="headline" name="headline" type="text" autocomplete="off"></div><div class="field"><label for="subheadline">Subheadline</label><input id="subheadline" name="subheadline" type="text" autocomplete="off"></div><div class="field"><label for="slug">Slug *</label><input id="slug" name="slug" type="text" required autocomplete="off" aria-required="true"></div><div class="field"><label for="byline">Byline *</label><input id="byline" name="byline" type="text" required autocomplete="off" aria-required="true"></div><div class="field"><label for="email">Author Email Address *</label><input id="email" name="email" type="email" required autocomplete="email" aria-required="true"></div><div class="field"><label for="body">Article Body *</label><textarea id="body" name="body" rows="12" required aria-required="true"></textarea><div class="help">Paste the full article text here.</div></div><div class="field"><label for="images">Upload Images</label><input type="file" id="images" name="images" multiple accept="image/*"><div class="help">If you add images, each image caption is required.</div></div><div id="imageMeta" aria-live="polite"></div><div class="actions"><button type="button" id="previewButton">Preview Output</button><button type="button" id="downloadButton">Download Submission</button></div></form><h2>Preview</h2><pre id="preview"></pre><script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script><script>
     const publicationCategoryMap = {
       TN: [
-        "TN Announcements",
         "TN Court News",
         "TN Lifestyles",
         "TN News",
@@ -309,8 +308,15 @@ label { margin-bottom: 4px; display:block; }
         const option = document.createElement("option");
         option.value = category;
         option.textContent = category;
+        if (publication === "TN" && category === "TN News") {
+          option.selected = true;
+        }
         categorySelect.appendChild(option);
       });
+
+      if (publication === "TN") {
+        categorySelect.value = "TN News";
+      }
     }
 
     function renderImageCaptionFields(files) {
@@ -333,6 +339,7 @@ label { margin-bottom: 4px; display:block; }
         input.id = inputId;
         input.name = inputId;
         input.autocomplete = "off";
+        input.required = true;
 
         block.appendChild(heading);
         block.appendChild(label);
@@ -389,6 +396,12 @@ label { margin-bottom: 4px; display:block; }
       if (!data.body) {
         errors.push("Article body is required.");
       }
+
+      data.images.forEach((image, index) => {
+        if (!image.caption) {
+          errors.push(`Caption is required for image ${index + 1} (${image.file.name}).`);
+        }
+      });
 
       return errors;
     }

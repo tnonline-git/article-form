@@ -260,13 +260,109 @@ label { margin-bottom: 4px; display:block; }
 
     let selectedFiles = [];
 
-    function escapeXml(value = "") {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&apos;");
+    function isWordCharacter(character) {
+      return /[A-Za-z0-9]/.test(character || "");
+    }
+
+    function normalizeQuotesToApStyle(text) {
+      if (typeof text !== "string" || !text) {
+        return text || "";
+      }
+
+      const normalized = text
+        .normalize("NFC")
+        .replace(/[\u2018\u2019\u2032]/g, "'")
+        .replace(/[\u201C\u201D\u2033]/g, '"');
+
+      let result = "";
+      let doubleQuoteOpen = true;
+
+      for (let index = 0; index < normalized.length; index += 1) {
+        const current = normalized[index];
+        const previous = normalized[index - 1] || "";
+        const next = normalized[index + 1] || "";
+
+        if (current === '"') {
+          const shouldOpen =
+            doubleQuoteOpen ||
+            (!isWordCharacter(previous) && /[\s([{<—–-]/.test(previous || " "));
+
+          result += shouldOpen ? "\u201c" : "\u201d";
+          doubleQuoteOpen = !shouldOpen;
+          continue;
+        }
+
+        if (current === "'") {
+          if (isWordCharacter(previous) && isWordCharacter(next)) {
+            result += "\u2019";
+            continue;
+          }
+
+          const shouldOpen = !isWordCharacter(previous);
+          result += shouldOpen ? "\u2018" : "\u2019";
+          continue;
+        }
+
+        result += current;
+      }
+
+      return result;
+    }
+
+    function normalizeSubmissionData(data) {
+      return {
+        ...data,
+        headline: normalizeQuotesToApStyle(data.headline),
+        subheadline: normalizeQuotesToApStyle(data.subheadline),
+        byline: normalizeQuotesToApStyle(data.byline),
+        body: normalizeQuotesToApStyle(data.body),
+        images: data.images.map(image => ({
+          ...image,
+          caption: normalizeQuotesToApStyle(image.caption)
+        }))
+      };
+    }
+
+    function parseByline(byline) {
+      return byline
+        .split(/\s*(?:,|&| and )\s*/i)
+        .map(name => name.trim())
+        .filter(Boolean)
+        .map(name => ({ name }));
+    }
+
+    function buildSubmissionJson(data) {
+      const normalizedData = normalizeSubmissionData(data);
+
+      return {
+        created: normalizedData.created,
+        publication: [normalizedData.publication, "TNO-E"],
+        saxoauthor: "System Administrator",
+        status: "Imported",
+        category: normalizedData.category,
+        headline: normalizedData.headline,
+        subHeadline: normalizedData.subheadline,
+        slug: normalizedData.slug,
+        byline: normalizedData.byline,
+        authorEmail: normalizedData.email,
+        authors: parseByline(normalizedData.byline),
+        body: normalizedData.body,
+        images: normalizedData.images.map(image => ({
+          filename: image.file.name,
+          caption: image.caption
+        }))
+      };
+    }
+
+    function encodeUnicodeQuoteEscapes(text) {
+      const quoteEscapeMap = {
+        "\u2018": "\\u2018",
+        "\u2019": "\\u2019",
+        "\u201C": "\\u201c",
+        "\u201D": "\\u201d"
+      };
+
+      return text.replace(/[\u2018\u2019\u201C\u201D]/g, character => quoteEscapeMap[character] || character);
     }
 
     function showError(messages) {
@@ -407,29 +503,9 @@ label { margin-bottom: 4px; display:block; }
     }
 
     function buildSubmissionText(data) {
-      const imagesXml = data.images.map(image => {
-        return [
-          "<image>",
-          `<filename>${escapeXml(image.file.name)}</filename>`,
-          `<caption>${escapeXml(image.caption)}</caption>`,
-          "</image>"
-        ].join("\n");
-      }).join("\n\n");
-
-      return [
-        `<created>${escapeXml(data.created)}</created>`,
-        `<publication>${escapeXml(data.publication)}</publication>`,
-        `<category>${escapeXml(data.category)}</category>`,
-        `<headline>${escapeXml(data.headline)}</headline>`,
-        `<subheadline>${escapeXml(data.subheadline)}</subheadline>`,
-        `<slug>${escapeXml(data.slug)}</slug>`,
-        `<byline>${escapeXml(data.byline)}</byline>`,
-        `<email>${escapeXml(data.email)}</email>`,
-        "<body>",
-        escapeXml(data.body),
-        "</body>",
-        imagesXml
-      ].filter(Boolean).join("\n");
+      const submissionJson = buildSubmissionJson(data);
+      const formattedJson = JSON.stringify(submissionJson, null, 2);
+      return encodeUnicodeQuoteEscapes(formattedJson);
     }
 
     function generateOutput() {
@@ -446,7 +522,7 @@ label { margin-bottom: 4px; display:block; }
 
       const outputText = buildSubmissionText(data);
       previewElement.textContent = outputText;
-      showSuccess("Preview generated successfully.");
+      showSuccess("JSON preview generated successfully.");
       return { data, outputText };
     }
 
@@ -458,7 +534,7 @@ label { margin-bottom: 4px; display:block; }
       }
 
       const zip = new JSZip();
-      zip.file("submission.txt", result.outputText);
+      zip.file("submission.json", result.outputText);
 
       result.data.images.forEach(image => {
         zip.file(image.file.name, image.file);
@@ -474,7 +550,7 @@ label { margin-bottom: 4px; display:block; }
         document.body.appendChild(link);
         link.click();
         link.remove();
-        showSuccess("Submission ZIP downloaded successfully.");
+        showSuccess("Submission ZIP with JSON downloaded successfully.");
       } finally {
         URL.revokeObjectURL(objectUrl);
       }

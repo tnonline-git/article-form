@@ -260,69 +260,6 @@ label { margin-bottom: 4px; display:block; }
 
     let selectedFiles = [];
 
-    function isWordCharacter(character) {
-      return /[A-Za-z0-9]/.test(character || "");
-    }
-
-    function normalizeQuotesToApStyle(text) {
-      if (typeof text !== "string" || !text) {
-        return text || "";
-      }
-
-      const normalized = text
-        .normalize("NFC")
-        .replace(/[\u2018\u2019\u2032]/g, "'")
-        .replace(/[\u201C\u201D\u2033]/g, '"');
-
-      let result = "";
-      let doubleQuoteOpen = true;
-
-      for (let index = 0; index < normalized.length; index += 1) {
-        const current = normalized[index];
-        const previous = normalized[index - 1] || "";
-        const next = normalized[index + 1] || "";
-
-        if (current === '"') {
-          const shouldOpen =
-            doubleQuoteOpen ||
-            (!isWordCharacter(previous) && /[\s([{<—–-]/.test(previous || " "));
-
-          result += shouldOpen ? "\u201c" : "\u201d";
-          doubleQuoteOpen = !shouldOpen;
-          continue;
-        }
-
-        if (current === "'") {
-          if (isWordCharacter(previous) && isWordCharacter(next)) {
-            result += "\u2019";
-            continue;
-          }
-
-          const shouldOpen = !isWordCharacter(previous);
-          result += shouldOpen ? "\u2018" : "\u2019";
-          continue;
-        }
-
-        result += current;
-      }
-
-      return result;
-    }
-
-    function normalizeSubmissionData(data) {
-      return {
-        ...data,
-        headline: normalizeQuotesToApStyle(data.headline),
-        subheadline: normalizeQuotesToApStyle(data.subheadline),
-        byline: normalizeQuotesToApStyle(data.byline),
-        body: normalizeQuotesToApStyle(data.body),
-        images: data.images.map(image => ({
-          ...image,
-          caption: normalizeQuotesToApStyle(image.caption)
-        }))
-      };
-    }
-
     function parseByline(byline) {
       return byline
         .split(/\s*(?:,|&| and )\s*/i)
@@ -331,8 +268,194 @@ label { margin-bottom: 4px; display:block; }
         .map(name => ({ name }));
     }
 
+    function normalizeApQuotes(value = "") {
+      let text = String(value);
+
+      text = text.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
+      text = text.replace(/(^|[\s([{\-])"/g, '$1“');
+      text = text.replace(/"/g, "”");
+      text = text.replace(/“([^“”]*)”(?=[A-Za-z0-9])/g, "“$1”");
+      text = text.replace(/([A-Za-z0-9])'([A-Za-z0-9])/g, "$1’$2");
+      text = text.replace(/(^|[\s([{\-])'/g, "$1‘");
+      text = text.replace(/'/g, "’");
+
+      return text;
+    }
+
+    function escapeUnicodeQuotes(value = "") {
+      return String(value)
+        .replace(/“/g, "\\u201c")
+        .replace(/”/g, "\\u201d")
+        .replace(/‘/g, "\\u2018")
+        .replace(/’/g, "\\u2019");
+    }
+
+    function normalizeTextFields(data) {
+      return {
+        ...data,
+        headline: normalizeApQuotes(data.headline),
+        subheadline: normalizeApQuotes(data.subheadline),
+        byline: normalizeApQuotes(data.byline),
+        body: normalizeApQuotes(data.body),
+        images: data.images.map(image => ({
+          ...image,
+          caption: normalizeApQuotes(image.caption)
+        }))
+      };
+    }
+
+    const photoNameCodeMap = {
+      TN: {
+        "TN News": "news",
+        "TN Announcements": "news",
+        "TN Court News": "news",
+        "TN Lifestyles": "life",
+        "TN Police Logs": "news",
+        "TN Sports": "spts"
+      },
+      BP: {
+        "LVP Business Showcase": "bpnw",
+        "LVP College Corner": "bpnw",
+        "LVP Columns": "bpnw",
+        "LVP Focus": "focs",
+        "LVP News": "bpnw",
+        "LVP News Briefs": "bpnw",
+        "LVP Police Logs": "bpnw",
+        "LVP School News": "bpnw",
+        "LVP Social News": "bpnw",
+        "LVP Sports": "bpsp"
+      },
+      CP: {
+        "LVP Business Showcase": "cpnw",
+        "LVP College Corner": "cpnw",
+        "LVP Columns": "cpnw",
+        "LVP Focus": "focs",
+        "LVP News": "cpnw",
+        "LVP News Briefs": "cpnw",
+        "LVP Police Logs": "cpnw",
+        "LVP School News": "cpnw",
+        "LVP Social News": "cpnw",
+        "LVP Sports": "cpsp"
+      },
+      EP: {
+        "LVP Business Showcase": "epnw",
+        "LVP College Corner": "epnw",
+        "LVP Columns": "epnw",
+        "LVP Focus": "focs",
+        "LVP News": "epnw",
+        "LVP News Briefs": "epnw",
+        "LVP Police Logs": "epnw",
+        "LVP School News": "epnw",
+        "LVP Social News": "epnw",
+        "LVP Sports": "epsp"
+      },
+      NH: {
+        "LVP Business Showcase": "nhnw",
+        "LVP College Corner": "nhnw",
+        "LVP Columns": "nhnw",
+        "LVP Focus": "focs",
+        "LVP News": "nhnw",
+        "LVP News Briefs": "nhnw",
+        "LVP Police Logs": "nhnw",
+        "LVP School News": "nhnw",
+        "LVP Social News": "nhnw",
+        "LVP Sports": "nhsp"
+      },
+      NW: {
+        "LVP Business Showcase": "nwnw",
+        "LVP College Corner": "nwnw",
+        "LVP Columns": "nwnw",
+        "LVP Focus": "focs",
+        "LVP News": "nhnw",
+        "LVP News Briefs": "nwnw",
+        "LVP Police Logs": "nwnw",
+        "LVP School News": "nwnw",
+        "LVP Social News": "nwnw",
+        "LVP Sports": "nwsp"
+      },
+      PP: {
+        "LVP Business Showcase": "ppnw",
+        "LVP College Corner": "ppnw",
+        "LVP Columns": "ppnw",
+        "LVP Focus": "focs",
+        "LVP News": "ppnw",
+        "LVP News Briefs": "ppnw",
+        "LVP Police Logs": "ppnw",
+        "LVP School News": "ppnw",
+        "LVP Social News": "ppnw",
+        "LVP Sports": "ppsp"
+      },
+      SP: {
+        "LVP Business Showcase": "spnw",
+        "LVP College Corner": "spnw",
+        "LVP Columns": "spnw",
+        "LVP Focus": "focs",
+        "LVP News": "spnw",
+        "LVP News Briefs": "spnw",
+        "LVP Police Logs": "spnw",
+        "LVP School News": "spnw",
+        "LVP Social News": "spnw",
+        "LVP Sports": "spsp"
+      },
+      WC: {
+        "LVP Business Showcase": "wcnw",
+        "LVP College Corner": "wcnw",
+        "LVP Columns": "wcnw",
+        "LVP Focus": "focs",
+        "LVP News": "wcnw",
+        "LVP News Briefs": "wcnw",
+        "LVP Police Logs": "wcnw",
+        "LVP School News": "wcnw",
+        "LVP Social News": "wcnw",
+        "LVP Sports": "wcsp"
+      },
+      Focus: {
+        "LVP Business Showcase": "focs",
+        "LVP College Corner": "focs",
+        "LVP Columns": "focs",
+        "LVP Focus": "focs",
+        "LVP News": "focs",
+        "LVP News Briefs": "focs",
+        "LVP Police Logs": "focs",
+        "LVP School News": "focs",
+        "LVP Social News": "focs",
+        "LVP Sports": "focs"
+      }
+    };
+
+    function getPhotoPrefixCode(publication, category) {
+      return photoNameCodeMap[publication]?.[category] || "";
+    }
+
+    function getDayOfMonth(created) {
+      const date = created ? new Date(created) : new Date();
+      return String(date.getDate()).padStart(2, "0");
+    }
+
+    function sanitizePhotoBaseName(filename) {
+      const baseName = String(filename).replace(/\.[^.]+$/, "");
+      return baseName
+        .trim()
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Za-z0-9_-]/g, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_+|_+$/g, "") || "photo";
+    }
+
+    function getOutputPhotoName(fileName, publication, category, created) {
+      const code = getPhotoPrefixCode(publication, category);
+
+      if (!code) {
+        return fileName;
+      }
+
+      const day = getDayOfMonth(created);
+      const baseName = sanitizePhotoBaseName(fileName);
+      return `${day}_${code}_${baseName}.jpg`;
+    }
+
     function buildSubmissionJson(data) {
-      const normalizedData = normalizeSubmissionData(data);
+      const normalizedData = normalizeTextFields(data);
 
       return {
         created: normalizedData.created,
@@ -348,22 +471,17 @@ label { margin-bottom: 4px; display:block; }
         authors: parseByline(normalizedData.byline),
         body: normalizedData.body,
         images: normalizedData.images.map(image => ({
-          filename: image.file.name,
+          filename: getOutputPhotoName(
+            image.file.name,
+            normalizedData.publication,
+            normalizedData.category,
+            normalizedData.created
+          ),
           caption: image.caption
         }))
       };
     }
 
-    function encodeUnicodeQuoteEscapes(text) {
-      const quoteEscapeMap = {
-        "\u2018": "\\u2018",
-        "\u2019": "\\u2019",
-        "\u201C": "\\u201c",
-        "\u201D": "\\u201d"
-      };
-
-      return text.replace(/[\u2018\u2019\u201C\u201D]/g, character => quoteEscapeMap[character] || character);
-    }
 
     function showError(messages) {
       const list = Array.isArray(messages) ? messages : [messages];
@@ -455,7 +573,7 @@ label { margin-bottom: 4px; display:block; }
     }
 
     function getFormData() {
-      return {
+      return normalizeTextFields({
         created: new Date().toISOString(),
         publication: publicationSelect.value,
         category: categorySelect.value,
@@ -466,7 +584,7 @@ label { margin-bottom: 4px; display:block; }
         email: document.getElementById("email").value.trim(),
         body: document.getElementById("body").value.trim(),
         images: getImageData()
-      };
+      });
     }
 
     function validateData(data) {
@@ -504,8 +622,7 @@ label { margin-bottom: 4px; display:block; }
 
     function buildSubmissionText(data) {
       const submissionJson = buildSubmissionJson(data);
-      const formattedJson = JSON.stringify(submissionJson, null, 2);
-      return encodeUnicodeQuoteEscapes(formattedJson);
+      return escapeUnicodeQuotes(JSON.stringify(submissionJson, null, 2));
     }
 
     function generateOutput() {
@@ -537,7 +654,13 @@ label { margin-bottom: 4px; display:block; }
       zip.file("submission.json", result.outputText);
 
       result.data.images.forEach(image => {
-        zip.file(image.file.name, image.file);
+        const outputPhotoName = getOutputPhotoName(
+          image.file.name,
+          result.data.publication,
+          result.data.category,
+          result.data.created
+        );
+        zip.file(outputPhotoName, image.file);
       });
 
       const content = await zip.generateAsync({ type: "blob" });

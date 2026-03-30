@@ -471,6 +471,7 @@ label { margin-bottom: 4px; display:block; }
         authors: parseByline(normalizedData.byline),
         body: normalizedData.body,
         images: normalizedData.images.map(image => ({
+          origfilename: image.file.name.replace(/\.[^.]+$/, ""),
           filename: getOutputPhotoName(
             image.file.name,
             normalizedData.publication,
